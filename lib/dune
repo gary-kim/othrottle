@@ -1,0 +1,14 @@
+(library
+ (name othrottle)
+ (libraries
+  base
+  core
+  core_unix
+  async
+  async_unix
+  otoml
+  xdg
+  dune-build-info
+  re2)
+ (preprocess
+  (pps ppx_jane ppx_let ppx_assert)))

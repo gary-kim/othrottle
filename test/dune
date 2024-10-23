@@ -1,0 +1,8 @@
+(test
+ (name test_othrottle)
+ (libraries othrottle core async)
+ (preprocess
+  (pps ppx_expect)))
+
+(cram
+ (deps %{bin:othrottle}))

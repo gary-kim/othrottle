@@ -1,0 +1,31 @@
+---
+arch: x86_64
+image: fedora/latest
+packages:
+  - opam
+  - gcc
+  - gcc-c++
+  - re2-devel
+sources:
+  - "git@git.sr.ht:~gary-kim/othrottle"
+secrets:
+  - "5de7ec36-b900-47ba-be3d-4303475f46c2"
+tasks:
+  - opam_init: |
+      opam init --auto-setup --bare
+  - opam_deps: |
+      cd othrottle
+      opam switch create . ocaml-base-compiler.5.2.0 --deps-only -y
+      eval $(opam env)
+  - format_check: |
+      cd othrottle
+      eval $(opam env)
+      opam exec -- dune build @fmt
+  - build: |
+      cd othrottle
+      eval $(opam env)
+      opam exec -- dune build @all
+  - test: |
+      cd othrottle
+      eval $(opam env)
+      opam exec -- dune runtest

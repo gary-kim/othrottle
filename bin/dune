@@ -1,0 +1,25 @@
+(executable
+ (public_name othrottle)
+ (name main)
+ (promote (until-clean))
+ (modes
+  (byte exe)
+  (native exe)
+  byte_complete)
+ (libraries
+  othrottle
+  base
+  core
+  core_unix.command_unix
+  core_kernel
+  async
+  async_unix
+  dune-build-info)
+ (preprocess
+  (pps ppx_jane ppx_let)))
+
+(rule
+ (deps gen_build_info.sh (universe))
+ (target bin_build_info.ml)
+ (action
+  (bash "./gen_build_info.sh > \"%{target}\"")))
