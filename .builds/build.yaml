@@ -5,7 +5,7 @@ packages:
   - opam
   - gcc
   - gcc-c++
-  - re2-devel
+  - hostname
 sources:
   - "git@git.sr.ht:~gary-kim/othrottle"
 secrets:
