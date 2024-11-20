@@ -76,3 +76,24 @@ let t_from_filepath filepath =
       })
   | Error err -> Error err
 ;;
+
+let%expect_test "test otoml_of_t" =
+  let c =
+    { shell = "bash"
+    ; job_timeout = 30
+    ; task_timeout = 30
+    ; retry_sequence = [ 5 ]
+    ; filters = []
+    }
+  in
+  otoml_of_t c |> Otoml.Printer.to_string |> print_string;
+  return
+    [%expect
+      {|
+           job_timeout = 30
+           task_timeout = 30
+           shell = "bash"
+           retry_sequence = [5]
+           filters = []
+           |}]
+;;

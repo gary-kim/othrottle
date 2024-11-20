@@ -10,5 +10,6 @@
   xdg
   dune-build-info
   re2)
+ (inline_tests)
  (preprocess
-  (pps ppx_jane ppx_let ppx_assert)))
+  (pps ppx_jane ppx_expect ppx_let ppx_assert)))
