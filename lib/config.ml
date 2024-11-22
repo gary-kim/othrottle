@@ -77,6 +77,20 @@ let t_from_filepath filepath =
   | Error err -> Error err
 ;;
 
+let%expect_test "test default config through t_from_filepath" =
+  let c = t_from_filepath "/dev/null" |> Result.ok_or_failwith in
+  otoml_of_t c |> Otoml.Printer.to_string |> print_string;
+  return
+    [%expect
+      {|
+      job_timeout = 600
+      task_timeout = 30
+      shell = "bash"
+      retry_sequence = [5, 15, 30, 60, 120, 300, 900]
+      filters = []
+      |}]
+;;
+
 let%expect_test "test otoml_of_t" =
   let c =
     { shell = "bash"
