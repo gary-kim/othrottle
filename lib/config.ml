@@ -11,7 +11,7 @@ type t =
   { shell : string
   ; job_timeout : int
   ; task_timeout : int
-  ; retry_sequence : int list
+  ; retry_sequence : int array
   ; filters : filter list
   }
 [@@deriving sexp, bin_io, compare]
@@ -30,7 +30,8 @@ let otoml_of_t c =
   |> update "shell" (Otoml.string c.shell)
   |> update
        "retry_sequence"
-       (Otoml.array (c.retry_sequence |> List.map ~f:(fun x -> Otoml.integer x)))
+       (Otoml.array
+          (c.retry_sequence |> List.of_array |> List.map ~f:(fun x -> Otoml.integer x)))
   |> update
        "filters"
        (Otoml.array
@@ -62,6 +63,7 @@ let t_from_filepath filepath =
             conf
             (Otoml.get_array Otoml.get_integer)
             [ "retry_sequence" ]
+          |> Array.of_list
       ; filters =
           (match Otoml.path_exists conf [ "filters" ] with
            | true ->
@@ -96,7 +98,7 @@ let%expect_test "test otoml_of_t" =
     { shell = "bash"
     ; job_timeout = 30
     ; task_timeout = 30
-    ; retry_sequence = [ 5 ]
+    ; retry_sequence = [| 5 |]
     ; filters = []
     }
   in
