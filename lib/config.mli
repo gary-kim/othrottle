@@ -12,6 +12,7 @@ type t =
   ; job_timeout : int
   ; task_timeout : int
   ; retry_sequence : int array
+  ; retry_on_error : bool
   ; notification_cmd : string
   ; filters : filter list
   }

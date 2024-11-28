@@ -12,6 +12,7 @@ type t =
   ; job_timeout : int
   ; task_timeout : int
   ; retry_sequence : int array
+  ; retry_on_error : bool
   ; notification_cmd : string
   ; filters : filter list
   }
@@ -61,6 +62,8 @@ let t_from_filepath filepath =
       ; shell = Otoml.find_or ~default:"bash" conf Otoml.get_string [ "shell" ]
       ; notification_cmd =
           Otoml.find_or ~default:"" conf Otoml.get_string [ "notification_cmd" ]
+      ; retry_on_error =
+          Otoml.find_or ~default:true conf Otoml.get_boolean [ "retry_on_error" ]
       ; retry_sequence =
           Otoml.find_or
             ~default:[ 5; 15; 30; 60; 120; 300; 900 ]
@@ -103,8 +106,9 @@ let%expect_test "test otoml_of_t" =
     { shell = "bash"
     ; job_timeout = 30
     ; task_timeout = 30
+    ; retry_on_error = false
     ; retry_sequence = [| 5 |]
-    ; notification_cmd = ""
+    ; notification_cmd = "notify-send errored"
     ; filters = []
     }
   in
@@ -115,7 +119,7 @@ let%expect_test "test otoml_of_t" =
       job_timeout = 30
       task_timeout = 30
       shell = "bash"
-      notification_cmd = ""
+      notification_cmd = "notify-send errored"
       retry_sequence = [5]
       filters = []
       |}]
