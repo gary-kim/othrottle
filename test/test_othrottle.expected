@@ -1,3 +1,3 @@
-((shell bash)(job_timeout 30)(task_timeout 1000)(retry_sequence(5 10 30))(filters()))
-((shell bash)(job_timeout 600)(task_timeout 30)(retry_sequence(5 15 30 60 120 300 900))(filters()))
+((shell bash)(job_timeout 30)(task_timeout 1000)(retry_sequence(5 10 30))(notification_cmd"")(filters()))
+((shell bash)(job_timeout 600)(task_timeout 30)(retry_sequence(5 15 30 60 120 300 900))(notification_cmd"")(filters()))
 Syntax error on line 1, character 14: Malformed key-value pair (missing value?)

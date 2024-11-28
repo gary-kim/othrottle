@@ -12,6 +12,7 @@ type t =
   ; job_timeout : int
   ; task_timeout : int
   ; retry_sequence : int array
+  ; notification_cmd : string
   ; filters : filter list
   }
 [@@deriving sexp, bin_io, compare]
@@ -28,6 +29,7 @@ let otoml_of_t c =
   |> update "job_timeout" (Otoml.integer c.job_timeout)
   |> update "task_timeout" (Otoml.integer c.task_timeout)
   |> update "shell" (Otoml.string c.shell)
+  |> update "notification_cmd" (Otoml.string c.notification_cmd)
   |> update
        "retry_sequence"
        (Otoml.array
@@ -57,6 +59,8 @@ let t_from_filepath filepath =
       { job_timeout = Otoml.find_or ~default:600 conf Otoml.get_integer [ "job_timeout" ]
       ; task_timeout = Otoml.find_or ~default:30 conf Otoml.get_integer [ "task_timeout" ]
       ; shell = Otoml.find_or ~default:"bash" conf Otoml.get_string [ "shell" ]
+      ; notification_cmd =
+          Otoml.find_or ~default:"" conf Otoml.get_string [ "notification_cmd" ]
       ; retry_sequence =
           Otoml.find_or
             ~default:[ 5; 15; 30; 60; 120; 300; 900 ]
@@ -88,6 +92,7 @@ let%expect_test "test default config through t_from_filepath" =
       job_timeout = 600
       task_timeout = 30
       shell = "bash"
+      notification_cmd = ""
       retry_sequence = [5, 15, 30, 60, 120, 300, 900]
       filters = []
       |}]
@@ -99,6 +104,7 @@ let%expect_test "test otoml_of_t" =
     ; job_timeout = 30
     ; task_timeout = 30
     ; retry_sequence = [| 5 |]
+    ; notification_cmd = ""
     ; filters = []
     }
   in
@@ -106,10 +112,11 @@ let%expect_test "test otoml_of_t" =
   return
     [%expect
       {|
-           job_timeout = 30
-           task_timeout = 30
-           shell = "bash"
-           retry_sequence = [5]
-           filters = []
-           |}]
+      job_timeout = 30
+      task_timeout = 30
+      shell = "bash"
+      notification_cmd = ""
+      retry_sequence = [5]
+      filters = []
+      |}]
 ;;

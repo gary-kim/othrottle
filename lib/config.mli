@@ -12,6 +12,7 @@ type t =
   ; job_timeout : int
   ; task_timeout : int
   ; retry_sequence : int array
+  ; notification_cmd : string
   ; filters : filter list
   }
 [@@deriving sexp, bin_io, compare]
