@@ -8,7 +8,7 @@ module Job : sig
     | `Terminated of (string, unit) Clock.Event.t
     | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
     | `Timed_out of (string, unit) Clock.Event.t
-    | `Error of Error.t
+    | `Error of Error.t * (string, unit) Clock.Event.t option
     | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
     ]
 

@@ -8,7 +8,7 @@ module Job : sig
     | `Terminated of (string, unit) Clock.Event.t
     | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
     | `Timed_out of (string, unit) Clock.Event.t
-    | `Error of Error.t
+    | `Error of Error.t * (string, unit) Clock.Event.t option
     | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
     ]
 
@@ -30,7 +30,7 @@ end = struct
     | `Terminated of (string, unit) Clock.Event.t
     | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
     | `Timed_out of (string, unit) Clock.Event.t
-    | `Error of Error.t
+    | `Error of Error.t * (string, unit) Clock.Event.t option
     | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
     ]
 
@@ -113,7 +113,7 @@ end = struct
       | `Finished (x, _) -> `Finished x
       | `Starting -> `Starting
       | `Timed_out _ -> `Timed_out
-      | `Error x -> `Error x
+      | `Error (x, _) -> `Error x
     in
     { name = j.name
     ; cmd = j.cmd
@@ -281,7 +281,10 @@ end = struct
              ; queued = 0
              ; retries = 0
              }
-       | `Error _ ->
+       | `Error (_, evt_opt) ->
+         (match evt_opt with
+          | Some evt -> Clock.Event.abort_if_possible evt cmd
+          | None -> ());
          Hashtbl.set
            state.jobs
            ~key:cmd
@@ -406,7 +409,34 @@ end = struct
                 state
           | Error e ->
             Log.Global.printf "Error-ed job: \"%s\"" cmd;
-            Hashtbl.set state.jobs ~key:cmd ~data:{ j with job_state = `Error e }))
+            (match state.config.retry_on_error with
+             | true ->
+               Log.Global.printf
+                 "try_on_error enabled, setting task restart timer for \"%s\""
+                 cmd;
+               Hashtbl.set
+                 state.jobs
+                 ~key:cmd
+                 ~data:
+                   { j with
+                     job_state =
+                       `Error
+                         ( e
+                         , Some
+                             (Clock.Event.run_after
+                                (retry_timeout_for state j
+                                 |> Time_float_unix.Span.of_int_sec)
+                                (fun cmd -> task_restart ~cmd state)
+                                cmd) )
+                   }
+             | false ->
+               Log.Global.printf
+                 "retry_on_error disabled, setting error state for \"%s\""
+                 cmd;
+               Hashtbl.set
+                 state.jobs
+                 ~key:cmd
+                 ~data:{ j with job_state = `Error (e, None) })))
 
   and task_timeout ~cmd state =
     let pj = Hashtbl.find_exn state.jobs cmd in
@@ -433,11 +463,9 @@ end = struct
   and task_restart ~cmd state =
     let pj = Hashtbl.find_exn state.jobs cmd in
     match pj.job_state with
-    | `Error _
-    | `Running (_, _, _)
-    | `Finished (_, _)
-    | `Terminated _ | `Starting | `Initialized -> ()
-    | `Timed_out _ ->
+    | `Running (_, _, _) | `Finished (_, _) | `Terminated _ | `Starting | `Initialized ->
+      ()
+    | `Error (_, _) | `Timed_out _ ->
       Hashtbl.set
         state.jobs
         ~key:cmd
@@ -472,7 +500,7 @@ end = struct
            don't_wait_for @@ monitor_job ~proc ~cmd state
          | Error e ->
            Log.Global.printf "Failed to start job \"%s\"" cmd;
-           Hashtbl.set state.jobs ~key:cmd ~data:{ j with job_state = `Error e })
+           Hashtbl.set state.jobs ~key:cmd ~data:{ j with job_state = `Error (e, None) })
     | _ -> ()
 
   and add_and_start_job ~cmd ~post_cmds ~origin state =
