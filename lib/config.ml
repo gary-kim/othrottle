@@ -14,6 +14,7 @@ type t =
   ; retry_sequence : int array
   ; retry_on_error : bool
   ; notification_cmd : string
+  ; notify_on_counter : int
   ; filters : filter list
   }
 [@@deriving sexp, bin_io, compare]
@@ -31,6 +32,7 @@ let otoml_of_t c =
   |> update "task_timeout" (Otoml.integer c.task_timeout)
   |> update "shell" (Otoml.string c.shell)
   |> update "notification_cmd" (Otoml.string c.notification_cmd)
+  |> update "notify_on_counter" (Otoml.integer c.notify_on_counter)
   |> update
        "retry_sequence"
        (Otoml.array
@@ -62,6 +64,8 @@ let t_from_filepath filepath =
       ; shell = Otoml.find_or ~default:"bash" conf Otoml.get_string [ "shell" ]
       ; notification_cmd =
           Otoml.find_or ~default:"" conf Otoml.get_string [ "notification_cmd" ]
+      ; notify_on_counter =
+          Otoml.find_or ~default:2 conf Otoml.get_integer [ "notify_on_counter" ]
       ; retry_on_error =
           Otoml.find_or ~default:true conf Otoml.get_boolean [ "retry_on_error" ]
       ; retry_sequence =
@@ -96,6 +100,7 @@ let%expect_test "test default config through t_from_filepath" =
       task_timeout = 30
       shell = "bash"
       notification_cmd = ""
+      notify_on_counter = 2
       retry_sequence = [5, 15, 30, 60, 120, 300, 900]
       filters = []
       |}]
@@ -109,6 +114,7 @@ let%expect_test "test otoml_of_t" =
     ; retry_on_error = false
     ; retry_sequence = [| 5 |]
     ; notification_cmd = "notify-send errored"
+    ; notify_on_counter = 5
     ; filters = []
     }
   in
@@ -120,6 +126,7 @@ let%expect_test "test otoml_of_t" =
       task_timeout = 30
       shell = "bash"
       notification_cmd = "notify-send errored"
+      notify_on_counter = 5
       retry_sequence = [5]
       filters = []
       |}]
