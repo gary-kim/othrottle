@@ -260,6 +260,23 @@ end = struct
 
   let queue_start_job ~cmd state = don't_wait_for @@ Pipe.write (snd state.job_pipe) cmd
 
+  let notify_failure_if_required ~(job : Job.t) state =
+    match job.job_state with
+    | `Terminated _ | `Running _ | `Initialized | `Starting | `Finished _ -> ()
+    | `Timed_out _ | `Error _ ->
+      if job.retries + 1 = state.config.notify_on_counter
+      then (
+        let env = `Replace [ "JOB", job.cmd; "ORIGIN", job.origin ] in
+        ignore
+          (Process.create
+             ~env
+             ~prog:state.config.shell
+             ~args:[ "-c"; state.config.notification_cmd ]
+             ()
+           : Process.t Or_error.t Deferred.t))
+      else ()
+  ;;
+
   let add_job ~cmd ~post_cmds ~origin state =
     let cmd = filtered_cmd ~cmd state in
     match Hashtbl.find state.jobs cmd with
@@ -414,29 +431,28 @@ end = struct
                Log.Global.printf
                  "try_on_error enabled, setting task restart timer for \"%s\""
                  cmd;
-               Hashtbl.set
-                 state.jobs
-                 ~key:cmd
-                 ~data:
-                   { j with
-                     job_state =
-                       `Error
-                         ( e
-                         , Some
-                             (Clock.Event.run_after
-                                (retry_timeout_for state j
-                                 |> Time_float_unix.Span.of_int_sec)
-                                (fun cmd -> task_restart ~cmd state)
-                                cmd) )
-                   }
+               let job =
+                 { j with
+                   job_state =
+                     `Error
+                       ( e
+                       , Some
+                           (Clock.Event.run_after
+                              (retry_timeout_for state j
+                               |> Time_float_unix.Span.of_int_sec)
+                              (fun cmd -> task_restart ~cmd state)
+                              cmd) )
+                 }
+               in
+               Hashtbl.set state.jobs ~key:cmd ~data:job;
+               notify_failure_if_required ~job state
              | false ->
                Log.Global.printf
                  "retry_on_error disabled, setting error state for \"%s\""
                  cmd;
-               Hashtbl.set
-                 state.jobs
-                 ~key:cmd
-                 ~data:{ j with job_state = `Error (e, None) })))
+               let job = { j with job_state = `Error (e, None) } in
+               Hashtbl.set state.jobs ~key:cmd ~data:job;
+               notify_failure_if_required ~job state)))
 
   and task_timeout ~cmd state =
     let pj = Hashtbl.find_exn state.jobs cmd in
@@ -445,20 +461,20 @@ end = struct
     | `Finished (_, _)
     | `Timed_out _ | `Terminated _ | `Starting | `Initialized -> ()
     | `Running (_, proc, _) ->
-      Hashtbl.set
-        state.jobs
-        ~key:cmd
-        ~data:
-          { pj with
-            job_state =
-              `Timed_out
-                (Clock.Event.run_after
-                   (retry_timeout_for state pj |> Time_float_unix.Span.of_int_sec)
-                   (fun cmd -> task_restart ~cmd state)
-                   cmd)
-          };
+      let data =
+        { pj with
+          job_state =
+            `Timed_out
+              (Clock.Event.run_after
+                 (retry_timeout_for state pj |> Time_float_unix.Span.of_int_sec)
+                 (fun cmd -> task_restart ~cmd state)
+                 cmd)
+        }
+      in
+      Hashtbl.set state.jobs ~key:cmd ~data;
       Log.Global.printf "Timing out job: \"%s\"" cmd;
-      Process.send_signal proc Signal.term
+      Process.send_signal proc Signal.term;
+      notify_failure_if_required ~job:data state
 
   and task_restart ~cmd state =
     let pj = Hashtbl.find_exn state.jobs cmd in
