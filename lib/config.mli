@@ -11,7 +11,10 @@ type t =
   { shell : string
   ; job_timeout : int
   ; task_timeout : int
-  ; retry_sequence : int list
+  ; retry_sequence : int array
+  ; retry_on_error : bool
+  ; notification_cmd : string
+  ; notify_on_counter : int
   ; filters : filter list
   }
 [@@deriving sexp, bin_io, compare]

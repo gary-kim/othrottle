@@ -6,8 +6,9 @@ module Job : sig
     [ `Initialized
     | `Starting
     | `Terminated of (string, unit) Clock.Event.t
-    | `Running of Time_float_unix.t * Process.t
-    | `Error of Error.t
+    | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
+    | `Timed_out of (string, unit) Clock.Event.t
+    | `Error of Error.t * (string, unit) Clock.Event.t option
     | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
     ]
 
@@ -20,6 +21,7 @@ module Job_for_client : sig
     | `Starting
     | `Terminated
     | `Running of Time_float_unix.t * Pid.t
+    | `Timed_out
     | `Error of Error.t
     | `Finished of Time_float_unix.t
     ]
@@ -34,6 +36,7 @@ module Job_for_client : sig
     ; job_state : state
     ; origin : string
     ; queued : int
+    ; retries : int
     }
   [@@deriving sexp, bin_io, compare]
 
