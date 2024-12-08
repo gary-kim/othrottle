@@ -58,9 +58,9 @@ let start_rpc_server socket_path othrottle_state =
       ~implementations
       ~on_unknown_rpc:
         (`Call
-          (fun _ ~rpc_tag ~version ->
-            Log.Global.info "Unexpected RPC, tag %s, version %d" rpc_tag version;
-            `Continue))
+            (fun _ ~rpc_tag ~version ->
+              Log.Global.info "Unexpected RPC, tag %s, version %d" rpc_tag version;
+              `Continue))
   in
   let where_to_listen = Tcp.Where_to_listen.of_file socket_path in
   let c =
