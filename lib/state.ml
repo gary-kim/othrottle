@@ -267,13 +267,18 @@ end = struct
       if job.retries + 1 = state.config.notify_on_counter
       then (
         let env = `Replace [ "JOB", job.cmd; "ORIGIN", job.origin ] in
-        ignore
-          (Process.create
+        Deferred.upon
+          (Process.run
              ~env
              ~prog:state.config.shell
              ~args:[ "-c"; state.config.notification_cmd ]
-             ()
-           : Process.t Or_error.t Deferred.t))
+             ())
+          (function
+            | Ok _ -> ()
+            | Error e ->
+              Log.Global.error
+                "Got error running notify shell: %s"
+                (Error.to_string_hum e)))
       else ()
   ;;
 
