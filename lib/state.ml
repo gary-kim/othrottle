@@ -567,8 +567,23 @@ end = struct
     | None -> Error (Error.createf "Cannot find job with ~cmd:\"%s\"" cmd)
     | Some j ->
       (match j.job_state with
-       | `Error _ | `Starting | `Initialized | `Finished _ | `Terminated _ | `Timed_out _
-         -> Ok ()
+       | `Starting | `Initialized | `Finished _ | `Terminated _ -> Ok ()
+       | `Timed_out evt ->
+         Clock.Event.abort_if_possible evt cmd;
+         Hashtbl.set
+           state.jobs
+           ~key:cmd
+           ~data:{ j with job_state = `Terminated (queue_cleanup ~cmd state) };
+         Ok ()
+       | `Error (_, evt_opt) ->
+         (match evt_opt with
+          | Some evt -> Clock.Event.abort_if_possible evt cmd
+          | None -> ());
+         Hashtbl.set
+           state.jobs
+           ~key:cmd
+           ~data:{ j with job_state = `Terminated (queue_cleanup ~cmd state) };
+         Ok ()
        | `Running (_, proc, _) ->
          Hashtbl.set
            state.jobs
