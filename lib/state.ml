@@ -266,7 +266,7 @@ end = struct
     | `Timed_out _ | `Error _ ->
       if job.retries + 1 = state.config.notify_on_counter
       then (
-        let env = `Replace [ "JOB", job.cmd; "ORIGIN", job.origin ] in
+        let env = `Extend [ "JOB", job.cmd; "ORIGIN", job.origin ] in
         Deferred.upon
           (Process.run
              ~env
