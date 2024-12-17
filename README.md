@@ -14,7 +14,7 @@ Inspired by [~ferdinandyb/throttle](https://sr.ht/~ferdinandyb/throttle/)
 Dependencies: `opam`, `gcc-c++` (for re2)
 
 ``` bash
-opam switch create . ocaml-base-compiler.5.2.0 --deps-only -y
+opam switch create . --deps-only -y
 eval $(opam env)
 make othrottle
 ```

@@ -20,7 +20,7 @@
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends
-   (ocaml (>= 5.2))
+   (ocaml (>= 5.2.0))
    dune
    (base (>= 0.17.0))
    (core (>= 0.17.0))

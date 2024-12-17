@@ -10,7 +10,7 @@ homepage: "https://sr.ht/~gary-kim/othrottle"
 doc: "https://sr.ht/~gary-kim/othrottle"
 bug-reports: "https://todo.sr.ht/~gary-kim/othrottle"
 depends: [
-  "ocaml" {>= "5.2"}
+  "ocaml" {>= "5.2.0"}
   "dune" {>= "3.15"}
   "base" {>= "0.17.0"}
   "core" {>= "0.17.0"}

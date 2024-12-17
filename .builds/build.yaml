@@ -15,7 +15,7 @@ tasks:
       opam init --auto-setup --bare
   - opam_deps: |
       cd othrottle
-      opam switch create . ocaml-base-compiler.5.2.0 --deps-only -y
+      opam switch create . --deps-only -y
       eval $(opam env)
   - format_check: |
       cd othrottle
