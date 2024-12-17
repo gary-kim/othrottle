@@ -25,6 +25,21 @@ A config file can be placed at `$XDG_CONFIG_DIR/othrottle/config.toml` (usually
 `~/.config/othrottle/config.toml`) or specified with the `--config` flag when
 running `othrottle server`.
 
+**Example Config:**
+
+```toml
+job_timeout = 600
+task_timeout = 300
+shell = "bash"
+notification_cmd = "notify-send 'othrottle error' \"$JOB\""
+notify_on_counter = 2
+retry_sequence = [5, 15, 30, 60, 120, 300, 900]
+
+[[filters]]
+pattern = "^mbsync 'gary.kim@cooper.edu:Sent'$"
+substitute = "mbsync 'gary.kim@cooper.edu:Sent Items'"
+```
+
 ### License
 
 Licensed under [AGPL-3.0-or-later](./LICENSE).
