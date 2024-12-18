@@ -29,9 +29,8 @@ let status_impl othrottle_state (args : Othrottle_protocol.Status_query.t) =
     else
       [ (fun a ->
           match State.Job_for_client.job_state a with
-          | `Finished _ -> false
-          | `Error _ | `Initialized | `Running _ | `Starting | `Terminated | `Timed_out ->
-            true)
+          | Finished _ -> false
+          | Error _ | Initialized | Running _ | Starting | Terminated | Timed_out -> true)
       ]
   in
   let filters_merged =
