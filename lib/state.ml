@@ -3,14 +3,23 @@ open! Async
 
 module Job : sig
   type state =
-    [ `Initialized
-    | `Starting
-    | `Terminated of (string, unit) Clock.Event.t
-    | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
-    | `Timed_out of (string, unit) Clock.Event.t
-    | `Error of Error.t * (string, unit) Clock.Event.t option
-    | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
-    ]
+    | Initialized
+    | Starting
+    | Terminated of { cleanup_evt : (string, unit) Clock.Event.t }
+    | Running of
+        { start_time : Time_float_unix.t
+        ; proc : Process.t
+        ; timeout_evt : (string, unit) Clock.Event.t
+        }
+    | Timed_out of { restart_evt : (string, unit) Clock.Event.t }
+    | Error of
+        { err : Error.t
+        ; restart_evt_opt : (string, unit) Clock.Event.t option
+        }
+    | Finished of
+        { finish_time : Time_float_unix.t
+        ; cleanup_evt : (string, unit) Clock.Event.t
+        }
 
   type t =
     { name : string
@@ -25,14 +34,23 @@ module Job : sig
     }
 end = struct
   type state =
-    [ `Initialized
-    | `Starting
-    | `Terminated of (string, unit) Clock.Event.t
-    | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
-    | `Timed_out of (string, unit) Clock.Event.t
-    | `Error of Error.t * (string, unit) Clock.Event.t option
-    | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
-    ]
+    | Initialized
+    | Starting
+    | Terminated of { cleanup_evt : (string, unit) Clock.Event.t }
+    | Running of
+        { start_time : Time_float_unix.t
+        ; proc : Process.t
+        ; timeout_evt : (string, unit) Clock.Event.t
+        }
+    | Timed_out of { restart_evt : (string, unit) Clock.Event.t }
+    | Error of
+        { err : Error.t
+        ; restart_evt_opt : (string, unit) Clock.Event.t option
+        }
+    | Finished of
+        { finish_time : Time_float_unix.t
+        ; cleanup_evt : (string, unit) Clock.Event.t
+        }
 
   type t =
     { (* cmd and name should basically always be the same. *)
@@ -51,14 +69,16 @@ end
 
 module Job_for_client : sig
   type state =
-    [ `Initialized
-    | `Starting
-    | `Terminated
-    | `Running of Time_float_unix.t * Pid.t
-    | `Timed_out
-    | `Error of Error.t
-    | `Finished of Time_float_unix.t
-    ]
+    | Initialized
+    | Starting
+    | Terminated
+    | Running of
+        { start_time : Time_float_unix.t
+        ; pid : Pid.t
+        }
+    | Timed_out
+    | Error of { err : Error.t }
+    | Finished of { finish_time : Time_float_unix.t }
   [@@deriving sexp, bin_io, compare]
 
   type t =
@@ -79,14 +99,16 @@ module Job_for_client : sig
   val to_markdown_table : t list -> string
 end = struct
   type state =
-    [ `Initialized
-    | `Starting
-    | `Terminated
-    | `Running of Time_float_unix.t * Pid.t
-    | `Timed_out
-    | `Error of Error.t
-    | `Finished of Time_float_unix.t
-    ]
+    | Initialized
+    | Starting
+    | Terminated
+    | Running of
+        { start_time : Time_float_unix.t
+        ; pid : Pid.t
+        }
+    | Timed_out
+    | Error of { err : Error.t }
+    | Finished of { finish_time : Time_float_unix.t }
   [@@deriving sexp, bin_io, compare]
 
   type t =
@@ -107,13 +129,14 @@ end = struct
   let t_of_job (j : Job.t) =
     let js =
       match j.job_state with
-      | `Initialized -> `Initialized
-      | `Terminated _ -> `Terminated
-      | `Running (x, y, _) -> `Running (x, Process.pid y)
-      | `Finished (x, _) -> `Finished x
-      | `Starting -> `Starting
-      | `Timed_out _ -> `Timed_out
-      | `Error (x, _) -> `Error x
+      | Initialized -> Initialized
+      | Terminated _ -> Terminated
+      | Running { start_time; proc; timeout_evt = _ } ->
+        Running { start_time; pid = Process.pid proc }
+      | Finished { finish_time; cleanup_evt = _ } -> Finished { finish_time }
+      | Starting -> Starting
+      | Timed_out { restart_evt = _ } -> Timed_out
+      | Error { err; restart_evt_opt = _ } -> Error { err }
     in
     { name = j.name
     ; cmd = j.cmd
@@ -129,12 +152,12 @@ end = struct
 
   let uptime_seconds (j : t) =
     match j.job_state with
-    | `Running (x, _) ->
-      Time_float_unix.diff (Time_float_unix.now ()) x
+    | Running { start_time; _ } ->
+      Time_float_unix.diff (Time_float_unix.now ()) start_time
       |> Time_float_unix.Span.to_sec
       |> Float.iround_down_exn
       |> Int.to_string
-    | `Error _ | `Finished _ | `Starting | `Initialized | `Terminated | `Timed_out -> ""
+    | Error _ | Finished _ | Starting | Initialized | Terminated | Timed_out -> ""
   ;;
 
   let to_markdown_table job_list =
@@ -262,8 +285,8 @@ end = struct
 
   let notify_failure_if_required ~(job : Job.t) state =
     match job.job_state with
-    | `Terminated _ | `Running _ | `Initialized | `Starting | `Finished _ -> ()
-    | `Timed_out _ | `Error _ ->
+    | Terminated _ | Running _ | Initialized | Starting | Finished _ -> ()
+    | Timed_out _ | Error _ ->
       if job.retries + 1 = state.config.notify_on_counter
       then (
         let env = `Extend [ "JOB", job.cmd; "ORIGIN", job.origin ] in
@@ -287,7 +310,8 @@ end = struct
     match Hashtbl.find state.jobs cmd with
     | Some j ->
       (match j.job_state with
-       | `Finished (_, gc) | `Terminated gc ->
+       | Finished { finish_time = _; cleanup_evt = gc } | Terminated { cleanup_evt = gc }
+         ->
          Clock.Event.abort_if_possible gc cmd;
          Hashtbl.set
            state.jobs
@@ -298,13 +322,13 @@ end = struct
              ; post_cmds
              ; post_post_cmds = []
              ; origin
-             ; job_state = `Initialized
+             ; job_state = Initialized
              ; last_queued = Time_float_unix.now ()
              ; queued = 0
              ; retries = 0
              }
-       | `Error (_, evt_opt) ->
-         (match evt_opt with
+       | Error { err = _; restart_evt_opt } ->
+         (match restart_evt_opt with
           | Some evt -> Clock.Event.abort_if_possible evt cmd
           | None -> ());
          Hashtbl.set
@@ -316,13 +340,13 @@ end = struct
              ; post_cmds
              ; post_post_cmds = []
              ; origin
-             ; job_state = `Initialized
+             ; job_state = Initialized
              ; last_queued = Time_float_unix.now ()
              ; queued = 0
              ; retries = 0
              }
-       | `Timed_out evt ->
-         Clock.Event.abort_if_possible evt cmd;
+       | Timed_out { restart_evt } ->
+         Clock.Event.abort_if_possible restart_evt cmd;
          Hashtbl.set
            state.jobs
            ~key:cmd
@@ -332,12 +356,12 @@ end = struct
              ; post_cmds
              ; post_post_cmds = []
              ; origin
-             ; job_state = `Initialized
+             ; job_state = Initialized
              ; last_queued = Time_float_unix.now ()
              ; queued = 0
              ; retries = 0
              }
-       | `Running _ | `Starting ->
+       | Running _ | Starting ->
          Hashtbl.set
            state.jobs
            ~key:cmd
@@ -347,7 +371,7 @@ end = struct
              ; last_queued = Time_float_unix.now ()
              ; post_post_cmds = append_if_non_empty j.post_post_cmds post_cmds
              }
-       | `Initialized ->
+       | Initialized ->
          Hashtbl.set
            state.jobs
            ~key:cmd
@@ -366,7 +390,7 @@ end = struct
           ; post_cmds
           ; post_post_cmds = []
           ; origin
-          ; job_state = `Initialized
+          ; job_state = Initialized
           ; last_queued = Time_float_unix.now ()
           ; queued = 0
           ; retries = 0
@@ -377,8 +401,8 @@ end = struct
     match Hashtbl.find state.jobs cmd with
     | Some j ->
       (match j.job_state with
-       | `Finished _ | `Terminated _ -> Hashtbl.remove state.jobs cmd
-       | `Error _ | `Running _ | `Initialized | `Starting | `Timed_out _ -> ())
+       | Finished _ | Terminated _ -> Hashtbl.remove state.jobs cmd
+       | Error _ | Running _ | Initialized | Starting | Timed_out _ -> ())
     | None -> ()
   ;;
 
@@ -389,7 +413,10 @@ end = struct
       cmd
   ;;
 
-  let finished_enum ~cmd state = Time_float_unix.now (), queue_cleanup ~cmd state
+  let finished_job ~cmd state : Job.state =
+    Finished
+      { finish_time = Time_float_unix.now (); cleanup_evt = queue_cleanup ~cmd state }
+  ;;
 
   let rec monitor_job ~proc ~cmd state =
     let%bind po = Process.collect_output_and_wait proc in
@@ -397,9 +424,8 @@ end = struct
       (let eos = po.exit_status in
        let j = Hashtbl.find_exn state.jobs cmd in
        match j.job_state with
-       | `Error _ | `Terminated _ | `Starting | `Finished _ | `Initialized | `Timed_out _
-         -> ()
-       | `Running (_, _, timeout_evt) ->
+       | Error _ | Terminated _ | Starting | Finished _ | Initialized | Timed_out _ -> ()
+       | Running { start_time = _; proc = _; timeout_evt } ->
          Clock.Event.abort_if_possible timeout_evt cmd;
          (match Core_unix.Exit_or_signal.or_error eos with
           | Ok _ ->
@@ -407,7 +433,7 @@ end = struct
             Hashtbl.set
               state.jobs
               ~key:cmd
-              ~data:{ j with job_state = `Finished (finished_enum ~cmd state) };
+              ~data:{ j with job_state = finished_job ~cmd state };
             (* Start post_cmds job *)
             List.map j.post_cmds ~f:(fun pc ->
               match pc with
@@ -439,14 +465,16 @@ end = struct
                let job =
                  { j with
                    job_state =
-                     `Error
-                       ( e
-                       , Some
-                           (Clock.Event.run_after
-                              (retry_timeout_for state j
-                               |> Time_float_unix.Span.of_int_sec)
-                              (fun cmd -> task_restart ~cmd state)
-                              cmd) )
+                     Error
+                       { err = e
+                       ; restart_evt_opt =
+                           Some
+                             (Clock.Event.run_after
+                                (retry_timeout_for state j
+                                 |> Time_float_unix.Span.of_int_sec)
+                                (fun cmd -> task_restart ~cmd state)
+                                cmd)
+                       }
                  }
                in
                Hashtbl.set state.jobs ~key:cmd ~data:job;
@@ -455,25 +483,27 @@ end = struct
                Log.Global.printf
                  "retry_on_error disabled, setting error state for \"%s\""
                  cmd;
-               let job = { j with job_state = `Error (e, None) } in
+               let job =
+                 { j with job_state = Error { err = e; restart_evt_opt = None } }
+               in
                Hashtbl.set state.jobs ~key:cmd ~data:job;
                notify_failure_if_required ~job state)))
 
   and task_timeout ~cmd state =
     let pj = Hashtbl.find_exn state.jobs cmd in
     match pj.job_state with
-    | `Error _
-    | `Finished (_, _)
-    | `Timed_out _ | `Terminated _ | `Starting | `Initialized -> ()
-    | `Running (_, proc, _) ->
+    | Error _ | Finished _ | Timed_out _ | Terminated _ | Starting | Initialized -> ()
+    | Running { start_time = _; proc; timeout_evt = _ } ->
       let data =
         { pj with
           job_state =
-            `Timed_out
-              (Clock.Event.run_after
-                 (retry_timeout_for state pj |> Time_float_unix.Span.of_int_sec)
-                 (fun cmd -> task_restart ~cmd state)
-                 cmd)
+            Timed_out
+              { restart_evt =
+                  Clock.Event.run_after
+                    (retry_timeout_for state pj |> Time_float_unix.Span.of_int_sec)
+                    (fun cmd -> task_restart ~cmd state)
+                    cmd
+              }
         }
       in
       Hashtbl.set state.jobs ~key:cmd ~data;
@@ -484,22 +514,21 @@ end = struct
   and task_restart ~cmd state =
     let pj = Hashtbl.find_exn state.jobs cmd in
     match pj.job_state with
-    | `Running (_, _, _) | `Finished (_, _) | `Terminated _ | `Starting | `Initialized ->
-      ()
-    | `Error (_, _) | `Timed_out _ ->
+    | Running _ | Finished _ | Terminated _ | Starting | Initialized -> ()
+    | Error { err = _; restart_evt_opt = _ } | Timed_out { restart_evt = _ } ->
       Hashtbl.set
         state.jobs
         ~key:cmd
-        ~data:{ pj with job_state = `Initialized; retries = pj.retries + 1 };
+        ~data:{ pj with job_state = Initialized; retries = pj.retries + 1 };
       start_job ~cmd state
 
   and start_job ~cmd state =
     let cmd = filtered_cmd ~cmd state in
     let pj = Hashtbl.find_exn state.jobs cmd in
     match pj.job_state with
-    | `Initialized ->
+    | Initialized ->
       Log.Global.printf "Starting job: \"%s\"" cmd;
-      Hashtbl.set state.jobs ~key:cmd ~data:{ pj with job_state = `Starting };
+      Hashtbl.set state.jobs ~key:cmd ~data:{ pj with job_state = Starting };
       don't_wait_for
       @@
       let%bind poe = Process.create ~prog:state.config.shell ~args:[ "-c"; cmd ] () in
@@ -517,11 +546,17 @@ end = struct
              state.jobs
              ~key:cmd
              ~data:
-               { j with job_state = `Running (Time_float_unix.now (), proc, timeout_evt) };
+               { j with
+                 job_state =
+                   Running { start_time = Time_float_unix.now (); proc; timeout_evt }
+               };
            don't_wait_for @@ monitor_job ~proc ~cmd state
          | Error e ->
            Log.Global.printf "Failed to start job \"%s\"" cmd;
-           Hashtbl.set state.jobs ~key:cmd ~data:{ j with job_state = `Error (e, None) })
+           Hashtbl.set
+             state.jobs
+             ~key:cmd
+             ~data:{ j with job_state = Error { err = e; restart_evt_opt = None } })
     | _ -> ()
 
   and add_and_start_job ~cmd ~post_cmds ~origin state =
@@ -567,28 +602,31 @@ end = struct
     | None -> Error (Error.createf "Cannot find job with ~cmd:\"%s\"" cmd)
     | Some j ->
       (match j.job_state with
-       | `Starting | `Initialized | `Finished _ | `Terminated _ -> Ok ()
-       | `Timed_out evt ->
-         Clock.Event.abort_if_possible evt cmd;
+       | Starting | Initialized | Finished _ | Terminated _ -> Ok ()
+       | Timed_out { restart_evt } ->
+         Clock.Event.abort_if_possible restart_evt cmd;
          Hashtbl.set
            state.jobs
            ~key:cmd
-           ~data:{ j with job_state = `Terminated (queue_cleanup ~cmd state) };
+           ~data:
+             { j with job_state = Terminated { cleanup_evt = queue_cleanup ~cmd state } };
          Ok ()
-       | `Error (_, evt_opt) ->
-         (match evt_opt with
+       | Error { err = _; restart_evt_opt } ->
+         (match restart_evt_opt with
           | Some evt -> Clock.Event.abort_if_possible evt cmd
           | None -> ());
          Hashtbl.set
            state.jobs
            ~key:cmd
-           ~data:{ j with job_state = `Terminated (queue_cleanup ~cmd state) };
+           ~data:
+             { j with job_state = Terminated { cleanup_evt = queue_cleanup ~cmd state } };
          Ok ()
-       | `Running (_, proc, _) ->
+       | Running { start_time = _; proc; timeout_evt = _ } ->
          Hashtbl.set
            state.jobs
            ~key:cmd
-           ~data:{ j with job_state = `Terminated (queue_cleanup ~cmd state) };
+           ~data:
+             { j with job_state = Terminated { cleanup_evt = queue_cleanup ~cmd state } };
          Process.send_signal proc Signal.int;
          Ok ())
   ;;

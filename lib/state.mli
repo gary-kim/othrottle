@@ -3,28 +3,39 @@ open! Async
 
 module Job : sig
   type state =
-    [ `Initialized
-    | `Starting
-    | `Terminated of (string, unit) Clock.Event.t
-    | `Running of Time_float_unix.t * Process.t * (string, unit) Clock.Event.t
-    | `Timed_out of (string, unit) Clock.Event.t
-    | `Error of Error.t * (string, unit) Clock.Event.t option
-    | `Finished of Time_float_unix.t * (string, unit) Clock.Event.t
-    ]
+    | Initialized
+    | Starting
+    | Terminated of { cleanup_evt : (string, unit) Clock.Event.t }
+    | Running of
+        { start_time : Time_float_unix.t
+        ; proc : Process.t
+        ; timeout_evt : (string, unit) Clock.Event.t
+        }
+    | Timed_out of { restart_evt : (string, unit) Clock.Event.t }
+    | Error of
+        { err : Error.t
+        ; restart_evt_opt : (string, unit) Clock.Event.t option
+        }
+    | Finished of
+        { finish_time : Time_float_unix.t
+        ; cleanup_evt : (string, unit) Clock.Event.t
+        }
 
   type t
 end
 
 module Job_for_client : sig
   type state =
-    [ `Initialized
-    | `Starting
-    | `Terminated
-    | `Running of Time_float_unix.t * Pid.t
-    | `Timed_out
-    | `Error of Error.t
-    | `Finished of Time_float_unix.t
-    ]
+    | Initialized
+    | Starting
+    | Terminated
+    | Running of
+        { start_time : Time_float_unix.t
+        ; pid : Pid.t
+        }
+    | Timed_out
+    | Error of { err : Error.t }
+    | Finished of { finish_time : Time_float_unix.t }
   [@@deriving sexp, bin_io, compare]
 
   type t =
