@@ -55,7 +55,7 @@ let status ~socket_path ~include_finished output_format =
     return
       (match output_format with
        | `Sexp ->
-         Othrottle_protocol.Status.sexp_of_t res
+         [%sexp_of: Othrottle_protocol.Status.t] res
          |> Sexp.to_string_hum
          |> Writer.write stdout_writer
        | `Markdown ->
@@ -80,7 +80,8 @@ let get_config ~socket_path output_format =
     let%bind c = Rpc.Rpc.dispatch_exn Othrottle_protocol.get_config_rpc conn () in
     return
       (match output_format with
-       | `Sexp -> Config.sexp_of_t c |> Sexp.to_string_hum |> Writer.write stdout_writer
+       | `Sexp ->
+         [%sexp_of: Config.t] c |> Sexp.to_string_hum |> Writer.write stdout_writer
        | `Toml ->
          Config.otoml_of_t c
          |> Otoml.Printer.to_string ~force_table_arrays:true
