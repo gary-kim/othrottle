@@ -41,7 +41,7 @@ let kill_job_rpc =
     ~name:"kill_job"
     ~version:0
     ~bin_query:[%bin_type_class: Kill_job_query.t]
-    ~bin_response:[%bin_type_class: (unit, Error.t) result]
+    ~bin_response:[%bin_type_class: unit Or_error.t]
     ~include_in_error_count:Only_on_exn
 ;;
 
