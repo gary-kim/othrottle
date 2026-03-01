@@ -4,7 +4,7 @@ open! Async
 module Connection : sig
   type t
 
-  val create : string -> (t, Exn.t) Result.t Deferred.t
+  val create : string -> t Deferred.Or_error.t
   val reader : t -> Reader.t
   val writer : t -> Writer.t
   val shutdown : t -> unit Deferred.t
@@ -18,7 +18,7 @@ end = struct
   let create socket_path =
     let sockaddr = Socket.Address.Unix.create socket_path in
     let socket = Socket.create Unix.Socket.Type.unix in
-    try_with (fun () ->
+    Deferred.Or_error.try_with (fun () ->
       let%bind connected_socket = Socket.connect socket sockaddr in
       return
         { socket = connected_socket

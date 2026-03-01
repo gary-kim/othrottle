@@ -20,7 +20,7 @@
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends
-   (ocaml-base-compiler (>= 5.2.0))
+   (ocaml-variants (= 5.2.0+ox))
    dune
    (base (>= 0.17.0))
    (core (>= 0.17.0))

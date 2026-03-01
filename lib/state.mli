@@ -2,25 +2,7 @@ open! Core
 open! Async
 
 module Job : sig
-  type state =
-    | Initialized
-    | Starting
-    | Terminated of { cleanup_evt : (string, unit) Clock.Event.t }
-    | Running of
-        { start_time : Time_float_unix.t
-        ; proc : Process.t
-        ; timeout_evt : (string, unit) Clock.Event.t
-        }
-    | Timed_out of { restart_evt : (string, unit) Clock.Event.t }
-    | Error of
-        { err : Error.t
-        ; restart_evt_opt : (string, unit) Clock.Event.t option
-        }
-    | Finished of
-        { finish_time : Time_float_unix.t
-        ; cleanup_evt : (string, unit) Clock.Event.t
-        }
-
+  type state
   type t
 end
 
@@ -30,12 +12,12 @@ module Job_for_client : sig
     | Starting
     | Terminated
     | Running of
-        { start_time : Time_float_unix.t
+        { start_time : Time_ns_unix.t
         ; pid : Pid.t
         }
     | Timed_out
     | Error of { err : Error.t }
-    | Finished of { finish_time : Time_float_unix.t }
+    | Finished of { finish_time : Time_ns_unix.t }
   [@@deriving sexp, bin_io, compare]
 
   type t =
@@ -43,7 +25,7 @@ module Job_for_client : sig
     ; cmd : string
     ; post_cmds : string list list
     ; post_post_cmds : string list list
-    ; last_queued : Time_float_unix.t
+    ; last_queued : Time_ns_unix.t
     ; job_state : state
     ; origin : string
     ; queued : int
@@ -59,7 +41,7 @@ end
 module Othrottle_state : sig
   type t
 
-  val create : config:Config.t -> unit -> (t, Error.t) Result.t
+  val create : config:Config.t -> unit -> t Or_error.t
   val state : t -> Job_for_client.t list
   val config : t -> Config.t
   val add_job : cmd:string -> post_cmds:string list list -> origin:string -> t -> unit
@@ -72,5 +54,5 @@ module Othrottle_state : sig
     -> t
     -> unit
 
-  val kill_job : cmd:string -> t -> (unit, Error.t) result
+  val kill_job : cmd:string -> t -> unit Or_error.t
 end

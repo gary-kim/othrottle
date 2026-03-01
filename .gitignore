@@ -29,8 +29,5 @@ nix/profiles/
 
 .deps-installed
 /othrottle
-/othrottle_release
-/bin/main.bc
-/bin/main.bc.exe
 /bin/main.exe
 

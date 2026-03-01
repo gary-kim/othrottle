@@ -1,0 +1,173 @@
+opam-version: "2.0"
+name: "othrottle"
+version: "dev"
+synopsis: "A short synopsis"
+description: "A longer description"
+maintainer: "Gary Kim <gary@garykim.dev>"
+authors: "Gary Kim <gary@garykim.dev>"
+license: "AGPL-3.0-or-later"
+tags: "unix"
+homepage: "https://sr.ht/~gary-kim/othrottle"
+doc: "https://sr.ht/~gary-kim/othrottle"
+bug-reports: "https://todo.sr.ht/~gary-kim/othrottle"
+depends: [
+  "astring" {= "0.8.5"}
+  "async" {= "v0.18~preview.130.76+222"}
+  "async_kernel" {= "v0.18~preview.130.76+222"}
+  "async_log" {= "v0.18~preview.130.76+222"}
+  "async_rpc_kernel" {= "v0.18~preview.130.76+222"}
+  "async_unix" {= "v0.18~preview.130.76+222"}
+  "base" {= "v0.18~preview.130.76+222"}
+  "base-bigarray" {= "base"}
+  "base-domains" {= "base"}
+  "base-nnp" {= "base"}
+  "base-threads" {= "base"}
+  "base-unix" {= "base"}
+  "base_bigstring" {= "v0.18~preview.130.76+222"}
+  "base_quickcheck" {= "v0.18~preview.130.76+222"}
+  "basement" {= "v0.18~preview.130.76+222"}
+  "bin_prot" {= "v0.18~preview.130.76+222"}
+  "camlp-streams" {= "5.0.1"}
+  "capitalization" {= "v0.18~preview.130.76+222"}
+  "capsule" {= "v0.18~preview.130.76+222"}
+  "capsule0" {= "v0.18~preview.130.76+222"}
+  "cmdliner" {= "1.3.0"}
+  "conf-autoconf" {= "0.2"}
+  "conf-c++" {= "1.0"}
+  "conf-which" {= "1"}
+  "core" {= "v0.18~preview.130.76+222"}
+  "core_extended" {= "v0.18~preview.130.76+222"}
+  "core_kernel" {= "v0.18~preview.130.76+222"}
+  "core_unix" {= "v0.18~preview.130.76+222"}
+  "csexp" {= "1.5.2"}
+  "cstruct" {= "6.2.0"}
+  "dune" {= "3.20.2+ox"}
+  "dune-build-info" {= "3.20.2"}
+  "dune-configurator" {= "3.20.2"}
+  "either" {= "1.0.0"}
+  "expect_test_helpers_core" {= "v0.18~preview.130.76+222"}
+  "fieldslib" {= "v0.18~preview.130.76+222"}
+  "fix" {= "20250919"}
+  "flexible_sexp" {= "v0.18~preview.130.76+222"}
+  "fmt" {= "0.10.0"}
+  "fpath" {= "0.7.3"}
+  "int_repr" {= "v0.18~preview.130.76+222"}
+  "jane-street-headers" {= "v0.18~preview.130.76+222"}
+  "jane_rope" {= "v0.18~preview.130.76+222"}
+  "jst-config" {= "v0.18~preview.130.76+222"}
+  "menhir" {= "20250912"}
+  "menhirCST" {= "20250912"}
+  "menhirLib" {= "20250912"}
+  "menhirSdk" {= "20250912"}
+  "num" {= "1.6"}
+  "ocaml" {= "5.2.0"}
+  "ocaml-compiler-libs" {= "v0.17.0+ox"}
+  "ocaml-config" {= "3"}
+  "ocaml-options-vanilla" {= "1"}
+  "ocaml-variants" {= "5.2.0+ox"}
+  "ocaml-version" {= "4.0.3"}
+  "ocaml_intrinsics_kernel" {= "v0.18~preview.130.76+222"}
+  "ocamlbuild" {= "0.15.0+ox"}
+  "ocamlfind" {= "1.9.8"}
+  "ocamlformat" {= "0.26.2+ox"}
+  "ocamlformat-lib" {= "0.26.2+ox"}
+  "ocp-indent" {= "1.9.0"}
+  "odoc-parser" {= "3.1.0+ox"}
+  "otoml" {= "1.0.5"}
+  "parsexp" {= "v0.18~preview.130.76+222"}
+  "pipe_with_writer_error" {= "v0.18~preview.130.76+222"}
+  "portable" {= "v0.18~preview.130.76+222"}
+  "ppx_array_base" {= "v0.18~preview.130.76+222"}
+  "ppx_assert" {= "v0.18~preview.130.76+222"}
+  "ppx_base" {= "v0.18~preview.130.76+222"}
+  "ppx_bench" {= "v0.18~preview.130.76+222"}
+  "ppx_bin_prot" {= "v0.18~preview.130.76+222"}
+  "ppx_cold" {= "v0.18~preview.130.76+222"}
+  "ppx_compare" {= "v0.18~preview.130.76+222"}
+  "ppx_custom_printf" {= "v0.18~preview.130.76+222"}
+  "ppx_debug_assert" {= "v0.18~preview.130.76+222"}
+  "ppx_derivers" {= "1.2.1"}
+  "ppx_diff" {= "v0.18~preview.130.76+222"}
+  "ppx_disable_unused_warnings" {= "v0.18~preview.130.76+222"}
+  "ppx_enumerate" {= "v0.18~preview.130.76+222"}
+  "ppx_expect" {= "v0.18~preview.130.76+222"}
+  "ppx_fields_conv" {= "v0.18~preview.130.76+222"}
+  "ppx_fixed_literal" {= "v0.18~preview.130.76+222"}
+  "ppx_fuelproof" {= "v0.18~preview.130.76+222"}
+  "ppx_globalize" {= "v0.18~preview.130.76+222"}
+  "ppx_hash" {= "v0.18~preview.130.76+222"}
+  "ppx_helpers" {= "v0.18~preview.130.76+222"}
+  "ppx_here" {= "v0.18~preview.130.76+222"}
+  "ppx_ignore_instrumentation" {= "v0.18~preview.130.76+222"}
+  "ppx_inline_test" {= "v0.18~preview.130.76+222"}
+  "ppx_int63_literal" {= "v0.18~preview.130.76+222"}
+  "ppx_jane" {= "v0.18~preview.130.76+222"}
+  "ppx_js_style" {= "v0.18~preview.130.76+222"}
+  "ppx_let" {= "v0.18~preview.130.76+222"}
+  "ppx_log" {= "v0.18~preview.130.76+222"}
+  "ppx_module_timer" {= "v0.18~preview.130.76+222"}
+  "ppx_optcomp" {= "v0.18~preview.130.76+222"}
+  "ppx_optional" {= "v0.18~preview.130.76+222"}
+  "ppx_pipebang" {= "v0.18~preview.130.76+222"}
+  "ppx_portable" {= "v0.18~preview.130.76+222"}
+  "ppx_sexp_conv" {= "v0.18~preview.130.76+222"}
+  "ppx_sexp_message" {= "v0.18~preview.130.76+222"}
+  "ppx_sexp_value" {= "v0.18~preview.130.76+222"}
+  "ppx_shorthand" {= "v0.18~preview.130.76+222"}
+  "ppx_stable" {= "v0.18~preview.130.76+222"}
+  "ppx_stable_witness" {= "v0.18~preview.130.76+222"}
+  "ppx_string" {= "v0.18~preview.130.76+222"}
+  "ppx_string_conv" {= "v0.18~preview.130.76+222"}
+  "ppx_template" {= "v0.18~preview.130.76+222"}
+  "ppx_tydi" {= "v0.18~preview.130.76+222"}
+  "ppx_typed_fields" {= "v0.18~preview.130.76+222"}
+  "ppx_typerep_conv" {= "v0.18~preview.130.76+222"}
+  "ppx_var_name" {= "v0.18~preview.130.76+222"}
+  "ppx_variants_conv" {= "v0.18~preview.130.76+222"}
+  "ppxlib" {= "0.33.0+ox"}
+  "ppxlib_ast" {= "0.33.0+ox"}
+  "ppxlib_jane" {= "v0.18~preview.130.76+222"}
+  "protocol_version_header" {= "v0.18~preview.130.76+222"}
+  "re" {= "1.14.0+ox"}
+  "re2" {= "v0.18~preview.130.76+222"}
+  "record_builder" {= "v0.18~preview.130.76+222"}
+  "regex_parser_intf" {= "v0.18~preview.130.76+222"}
+  "result" {= "1.5"}
+  "seq" {= "base"}
+  "sexp_pretty" {= "v0.18~preview.130.76+222"}
+  "sexp_type" {= "v0.18~preview.130.76+222"}
+  "sexplib" {= "v0.18~preview.130.76+222"}
+  "sexplib0" {= "v0.18~preview.130.76+222"}
+  "spawn" {= "v0.15.1+ox"}
+  "splittable_random" {= "v0.18~preview.130.76+222"}
+  "stdio" {= "v0.18~preview.130.76+222"}
+  "stdlib-shims" {= "0.3.0"}
+  "string_dict" {= "v0.18~preview.130.76+222"}
+  "textutils" {= "v0.18~preview.130.76+222"}
+  "time_now" {= "v0.18~preview.130.76+222"}
+  "topkg" {= "1.0.8+ox"}
+  "typerep" {= "v0.18~preview.130.76+222"}
+  "unique" {= "v0.18~preview.130.76+222"}
+  "univ_map" {= "v0.18~preview.130.76+222"}
+  "uopt" {= "v0.18~preview.130.76+222"}
+  "uucp" {= "16.0.0"}
+  "uuseg" {= "16.0.0"}
+  "uutf" {= "1.0.3+ox"}
+  "variantslib" {= "v0.18~preview.130.76+222"}
+  "xdg" {= "3.20.2"}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]
+dev-repo: "git+https://git.sr.ht/~gary-kim/othrottle"

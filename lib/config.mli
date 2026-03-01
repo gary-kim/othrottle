@@ -21,4 +21,4 @@ type t =
 
 val otoml_of_t : t -> Otoml.t
 val get_config_path : unit -> string
-val t_from_filepath : string -> (t, string) Result.t
+val t_from_filepath : string -> t Or_error.t

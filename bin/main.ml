@@ -2,7 +2,7 @@ open! Core
 open! Async
 
 let start_server socket_path config_path =
-  Log.Global.string "Starting server";
+  [%log.info "Starting server"];
   match Othrottle.Othrottle_server.init_and_recv socket_path ~config_path with
   | Some _ -> Deferred.never ()
   | None -> Deferred.return (shutdown 0)
@@ -13,16 +13,15 @@ let status_cmd =
     ~extract_exn:true
     ~summary:"Get current job status"
     (let%map_open.Command include_finished =
-       flag "--finished" no_arg ~doc:"include finished job in response"
-     and socket_path =
-       flag ~aliases:[ "--socket" ] "-s" (optional string) ~doc:"path server socket path"
+       flag "finished" no_arg ~doc:" include finished job in response"
+     and socket_path = flag "socket" (optional string) ~doc:"PATH server socket path"
      and format =
-       flag
-         "--format"
-         (optional_with_default
-            `Sexp
-            (Arg_type.of_alist_exn [ "sexp", `Sexp; "md", `Markdown ]))
-         ~doc:"format output format of status"
+       flag_optional_with_default_doc_string
+         "format"
+         Othrottle.Othrottle_client.Status_output_format.arg_type
+         Othrottle.Othrottle_client.Status_output_format.to_string
+         ~default:Othrottle.Othrottle_client.Status_output_format.Sexp
+         ~doc:"FORMAT output format of status"
      in
      fun () -> Othrottle.Othrottle_client.status ~socket_path ~include_finished format)
 ;;
@@ -32,15 +31,13 @@ let config_cmd =
     ~extract_exn:true
     ~summary:"Get server configuration"
     (let%map_open.Command format =
-       flag
-         "--format"
-         (optional_with_default
-            `Sexp
-            (Arg_type.of_alist_exn [ "sexp", `Sexp; "toml", `Toml ]))
-         ~doc:"format output format of config"
-     and socket_path =
-       flag ~aliases:[ "--socket" ] "-s" (optional string) ~doc:"path server socket path"
-     in
+       flag_optional_with_default_doc_string
+         "format"
+         Othrottle.Othrottle_client.Get_config_output_format.arg_type
+         Othrottle.Othrottle_client.Get_config_output_format.to_string
+         ~default:Othrottle.Othrottle_client.Get_config_output_format.Sexp
+         ~doc:"FORMAT output format of config"
+     and socket_path = flag "socket" (optional string) ~doc:"PATH server socket path" in
      fun () -> Othrottle.Othrottle_client.get_config ~socket_path format)
 ;;
 
@@ -49,18 +46,14 @@ let job_cmd =
     ~extract_exn:true
     ~summary:"Add a job"
     (let%map_open.Command origin =
-       flag
-         "--origin"
-         (optional_with_default "" string)
-         ~doc:"optional origin\n  for tracking"
+       flag_optional_with_default_doc_string
+         "origin"
+         string
+         Fn.id
+         ~default:""
+         ~doc:"ORIGIN origin for tracking"
      and cmds = anon (non_empty_sequence_as_list ("jobs" %: string))
-     and socket_path =
-       flag
-         ~aliases:[ "--socket" ]
-         "-s"
-         (optional string)
-         ~doc:"path server socket\n    path"
-     in
+     and socket_path = flag "socket" (optional string) ~doc:"PATH server socket path" in
      fun () -> Othrottle.Othrottle_client.add_job ~socket_path ~cmds ~origin)
 ;;
 
@@ -69,9 +62,7 @@ let kill_job_cmd =
     ~extract_exn:true
     ~summary:"Kill a currently running job"
     (let%map_open.Command cmd = anon ("job" %: string)
-     and socket_path =
-       flag ~aliases:[ "--socket" ] "-s" (optional string) ~doc:"path server socket path"
-     in
+     and socket_path = flag "socket" (optional string) ~doc:"PATH server socket path" in
      fun () -> Othrottle.Othrottle_client.kill_job ~socket_path ~cmd)
 ;;
 
@@ -80,13 +71,9 @@ let server_cmd =
     ~extract_exn:true
     ~summary:"Run server daemon"
     (let%map_open.Command socket_path =
-       flag ~aliases:[ "--socket" ] "-s" (optional string) ~doc:"path server socket path"
+       flag "socket" (optional string) ~doc:"PATH server socket path"
      and config_path =
-       flag
-         ~aliases:[ "--config" ]
-         "-c"
-         (optional string)
-         ~doc:"path path to .toml file configuration file"
+       flag "config" (optional string) ~doc:"PATH path to .toml configuration file"
      in
      fun () -> start_server socket_path config_path)
 ;;
@@ -121,10 +108,9 @@ let build_info =
 ;;
 
 let version =
-  Printf.sprintf
-    "(https://git.sr.ht/~gary-kim/othrottle/commit/%s) %s"
-    Bin_build_info.git_hash
-    Bin_build_info.version
+  let git_hash = Bin_build_info.git_hash in
+  let version = Bin_build_info.version in
+  [%string "(https://git.sr.ht/~gary-kim/othrottle/commit/%{git_hash}) %{version}"]
 ;;
 
 let () =

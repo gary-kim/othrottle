@@ -7,17 +7,32 @@ packages:
   - gcc-c++
   - hostname
   - awk
+  - bubblewrap
+  - make
+  - patch
+  - m4
+  - autoconf
+  - rsync
+  - btrfs-progs
 sources:
   - "git@git.sr.ht:~gary-kim/othrottle"
 secrets:
   - "5de7ec36-b900-47ba-be3d-4303475f46c2"
 tasks:
-  - opam_init: |
-      opam init --auto-setup --bare
-  - opam_deps: |
-      cd othrottle
-      opam switch create . --deps-only -y
+  - setup_ocaml: |
+      # The opam switch install runs out of space in builds.sr.ht.
+      # Install into a compressed btrfs mount.
+      truncate -s 15G ~/opam.img
+      mkfs.btrfs ~/opam.img
+      mkdir -p ~/.opam
+      sudo mount -o compress=zstd:1 ~/opam.img ~/.opam
+      sudo chown build:build ~/.opam
+
+      opam init --yes --bare
+      opam switch create 5.2.0+ox --repos ox=git+https://github.com/oxcaml/opam-repository.git,default --yes
       eval $(opam env)
+      cd othrottle
+      opam install . --deps-only --yes --assume-depexts --locked
   - format_check: |
       cd othrottle
       eval $(opam env)

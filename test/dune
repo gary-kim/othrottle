@@ -1,8 +1,11 @@
-(test
+(library
  (name test_othrottle)
  (libraries othrottle core async)
+ (inline_tests
+  (deps
+   (glob_files samples/*.toml)))
  (preprocess
-  (pps ppx_expect)))
+  (pps ppx_jane)))
 
 (cram
  (deps %{bin:othrottle}))

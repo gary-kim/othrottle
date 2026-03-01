@@ -16,7 +16,7 @@ end = struct
     return
       (Signal.manage_by_async [ Signal.int; Signal.quit; Signal.term ];
        Shutdown.at_shutdown (fun () ->
-         Log.Global.string "Removing socket before shutting down";
+         [%log.info "Removing socket before shutting down"];
          Unix.unlink socket_path);
        Socket.listen bound_socket ~backlog:16)
   ;;

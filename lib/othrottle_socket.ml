@@ -17,7 +17,8 @@ let get_possible_socket_paths () =
     | None -> []
   in
   let uid = Core_unix.getuid () in
-  let tmp_path = [ "/tmp/" / Printf.sprintf "%d-othrottle.sock" uid ] in
+  let uid_s = Int.to_string uid in
+  let tmp_path = [ "/tmp/" / [%string "%{uid_s}-othrottle.sock"] ] in
   xdg_path @ tmp_path
 ;;
 

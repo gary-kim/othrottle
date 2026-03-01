@@ -3,9 +3,7 @@
  (name main)
  (promote (until-clean))
  (modes
-  (byte exe)
-  (native exe)
-  byte_complete)
+  (native exe))
  (libraries
   othrottle
   base

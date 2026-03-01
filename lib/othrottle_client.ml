@@ -33,7 +33,9 @@ let connect socket_path_opt =
 let connect_and_run socket_path ~f =
   match%bind connect socket_path with
   | Ok conn -> f conn
-  | Error e -> return (Log.Global.error "%s" (Error.to_string_mach e))
+  | Error e ->
+    [%log.error (e : Error.t)];
+    return ()
 ;;
 
 let add_job ~socket_path ~cmds ~origin =
@@ -42,10 +44,19 @@ let add_job ~socket_path ~cmds ~origin =
     Rpc.Rpc.dispatch_exn Othrottle_protocol.create_job_rpc conn args)
 ;;
 
-type status_output_format =
-  [ `Sexp
-  | `Markdown
-  ]
+module Status_output_format = struct
+  type t =
+    | Sexp
+    | Markdown
+  [@@deriving enumerate, sexp, string]
+
+  let arg_type =
+    Command.Arg_type.enumerated
+      (module struct
+        type nonrec t = t [@@deriving enumerate, sexp, string]
+      end)
+  ;;
+end
 
 let status ~socket_path ~include_finished output_format =
   connect_and_run socket_path ~f:(fun conn ->
@@ -54,11 +65,11 @@ let status ~socket_path ~include_finished output_format =
     in
     return
       (match output_format with
-       | `Sexp ->
+       | Status_output_format.Sexp ->
          [%sexp_of: Othrottle_protocol.Status.t] res
          |> Sexp.to_string_hum
          |> Writer.write stdout_writer
-       | `Markdown ->
+       | Status_output_format.Markdown ->
          Othrottle_protocol.Status.to_markdown_table res |> Writer.write stdout_writer))
 ;;
 
@@ -70,19 +81,28 @@ let kill_job ~socket_path ~cmd =
     | Error x -> Error.to_string_hum x |> Writer.write stdout_writer)
 ;;
 
-type get_config_output_format =
-  [ `Sexp
-  | `Toml
-  ]
+module Get_config_output_format = struct
+  type t =
+    | Sexp
+    | Toml
+  [@@deriving enumerate, sexp, string]
+
+  let arg_type =
+    Command.Arg_type.enumerated
+      (module struct
+        type nonrec t = t [@@deriving enumerate, sexp, string]
+      end)
+  ;;
+end
 
 let get_config ~socket_path output_format =
   connect_and_run socket_path ~f:(fun conn ->
     let%bind c = Rpc.Rpc.dispatch_exn Othrottle_protocol.get_config_rpc conn () in
     return
       (match output_format with
-       | `Sexp ->
+       | Get_config_output_format.Sexp ->
          [%sexp_of: Config.t] c |> Sexp.to_string_hum |> Writer.write stdout_writer
-       | `Toml ->
+       | Get_config_output_format.Toml ->
          Config.otoml_of_t c
          |> Otoml.Printer.to_string ~force_table_arrays:true
          |> Writer.write stdout_writer))

@@ -52,13 +52,14 @@ let t_from_filepath filepath =
   let c =
     try Ok (Otoml.Parser.from_file filepath) with
     | Sys_error _ -> Ok (Otoml.string "")
-    | Otoml.Parse_error (pos, err) -> Error (Otoml.Parser.format_parse_error pos err)
-    | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
+    | Otoml.Parse_error (pos, err) ->
+      Or_error.error_s
+        [%message "otoml parse error" (pos : (int * int) option) (err : string)]
+    | Failure err -> Or_error.error_s [%message "otoml internal error" (err : string)]
   in
   match c with
   | Ok conf ->
-    Result.map_error ~f:(fun e -> Exn.to_string e)
-    @@ Result.try_with (fun () ->
+    Or_error.try_with (fun () ->
       { job_timeout = Otoml.find_or ~default:600 conf Otoml.get_integer [ "job_timeout" ]
       ; task_timeout = Otoml.find_or ~default:30 conf Otoml.get_integer [ "task_timeout" ]
       ; shell = Otoml.find_or ~default:"bash" conf Otoml.get_string [ "shell" ]
@@ -91,7 +92,7 @@ let t_from_filepath filepath =
 ;;
 
 let%expect_test "test default config through t_from_filepath" =
-  let c = t_from_filepath "/dev/null" |> Result.ok_or_failwith in
+  let c = t_from_filepath "/dev/null" |> Or_error.ok_exn in
   otoml_of_t c |> Otoml.Printer.to_string |> print_string;
   return
     [%expect

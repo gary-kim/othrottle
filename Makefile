@@ -1,24 +1,13 @@
 .PHONY: all
 all: othrottle
 
-.PHONY: bin/main.bc.exe
-bin/main.bc.exe: .deps-installed
-	dune build bin/main.bc.exe
-
-.PHONY: bin/main.exe
-bin/main.exe: .deps-installed
-	dune build bin/main.exe
-
 .PHONY: othrottle
-othrottle: bin/main.exe .deps-installed
-	rm -f othrottle
-	ln -s bin/main.exe othrottle
+othrottle: .deps-installed
+	dune build othrottle
 
 .PHONY: othrottle_release
 othrottle_release: .deps-installed
-	rm -f othrottle_release
-	dune build --release @all
-	ln -s bin/main.bc.exe othrottle_release
+	dune build --release othrottle
 
 .PHONY: watch
 watch: dependencies

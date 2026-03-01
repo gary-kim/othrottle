@@ -1,0 +1,7 @@
+(rule
+ (alias executables)
+ (mode promote)
+ (target othrottle)
+ (deps %{project_root}/bin/main.exe)
+ (action
+  (copy %{deps} %{target})))
